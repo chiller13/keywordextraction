@@ -2,8 +2,8 @@ pandas==1.3.3
 numpy==1.18.5
 networkx==2.6.3
 spacy==2.3.5
-en_core_web_sm==2.3.1
-de_core_news_sm==2.3.0
+en_core_web_sm
+de_core_news_sm
 nltk==3.6.5
 matplotlib==3.4.3
 distinctiveness
