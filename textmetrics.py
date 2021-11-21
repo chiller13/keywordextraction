@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import networkx as nx
-import enron.GraphModelling.graphmetrics as graphmetrics
+import graphmetrics
 from collections import Counter
 from distinctiveness.dc import distinctiveness
 
