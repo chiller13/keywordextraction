@@ -1,14 +1,15 @@
 import numpy as np
 import pandas as pd
 import networkx as nx
+import enron.GraphModelling.graphmetrics as graphmetrics
 from collections import Counter
 from distinctiveness.dc import distinctiveness
 
 
-def calculateTextMetrics(G, tokenized_texts):
+def calculateTextMetrics(G, tokenized_texts, parallel=True):
     prevalence = calculatePrevalence(texts=tokenized_texts)
     diversity = calculateDiversity(G=G, reverse=False)
-    connectivity = calculateConnectivity(G=G)
+    connectivity = calculateConnectivity(G=G, parallel=parallel)
 
     metrics = pd.DataFrame.from_dict(prevalence, orient="index", columns=["prevalence"])
     metrics["diversity"] = metrics.index.map(diversity)
@@ -56,7 +57,7 @@ def calculateDiversity(G, reverse=True):
     return sortedDiversity
 
 
-def calculateConnectivity(G, reverse=True):
+def calculateConnectivity(G, parallel=True, reverse=True):
     # Define inverse weights, beacaus bc interprets weight as distance
     for u, v, data in G.edges(data=True):
         if "weight" in data and data["weight"] != 0:
@@ -64,7 +65,11 @@ def calculateConnectivity(G, reverse=True):
         else:
             data["inverse"] = 1
 
-    CONNECTIVITY_sequence = nx.betweenness_centrality(G, normalized=False, weight="inverse")
+    if parallel:
+        CONNECTIVITY_sequence = graphmetrics.betweenness_centrality_parallel(G, normalized=False, weight="inverse")
+    else:
+        CONNECTIVITY_sequence = nx.betweenness_centrality(G, normalized=False, weight="inverse")
+
     # Calculate average score and standard deviation
     avgCO = np.mean(list(CONNECTIVITY_sequence.values()))
     stdCO = np.std(list(CONNECTIVITY_sequence.values()))

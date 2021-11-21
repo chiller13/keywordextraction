@@ -3,7 +3,29 @@ import networkx as nx
 import string
 import re
 import matplotlib.pyplot as plt
+import graphtools
 from textmetrics import calculatePrevalence
+
+from collections import Counter
+
+
+def load_df_for_texts(path, text_col):
+    """Loads csv file from path."""
+    df = pd.read_csv(path, index_col=0, parse_dates=["Date"])
+    df = df.drop_duplicates(subset=text_col)
+    print("Anzahl Mails:", len(df))
+    return df
+
+
+def filter_person(df, person):
+    """Filters DataFrame for E-Mail Exchange between given addresses."""
+    result = pd.DataFrame(columns=df.columns)
+    for pers1 in person:
+        for pers2 in person:
+            if pers1 != pers2:
+                mails = df[(df["From"] == pers1) & (df["To"] == pers2)]
+                result = result.append(mails)
+    return result
 
 
 def clean_texts(texts, stopwords, **kwargs):
@@ -126,7 +148,7 @@ def show_ego_of_word(G, node, radius=1, min_weight=1, figsize=(20, 15)):
         ego.remove_nodes_from(to_remove)
 
     print("No. of Nodes:", ego.number_of_nodes(), "No. of Edges:", ego.number_of_edges())
-    colors = color_nodes(G=ego, ego_node=node)
+    colors = graphtools.color_nodes(G=ego, ego_node=node)
     plt.figure(figsize=figsize)
     pos = nx.spring_layout(ego, seed=42, weight="weight")
     labels = nx.draw_networkx_labels(ego, pos=pos, font_color="black")
@@ -134,15 +156,3 @@ def show_ego_of_word(G, node, radius=1, min_weight=1, figsize=(20, 15)):
 
     nx.draw(ego, pos=pos, node_color=colors, edge_color="black", node_size=[50 * oc for d in ego.nodes() for oc in dict(ego.nodes(data=True))[d].values()])
     plt.show()
-
-
-def color_nodes(G, ego_node):
-    """Returns a list of colors to plot **G**. Marks **person** and its neighbors in **G**."""
-    colors = ["lightblue" for i in range(len(G.nodes))]
-
-    for ind, node in enumerate(G.nodes):
-        if node in nx.ego_graph(G, ego_node).nodes:
-            colors[ind] = "lightgreen"
-        if node == ego_node:
-            colors[ind] = "lightcoral"
-    return colors
