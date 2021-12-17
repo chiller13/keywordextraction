@@ -6,14 +6,16 @@ from collections import Counter
 from distinctiveness.dc import distinctiveness
 
 
-def calculateTextMetrics(G, tokenized_texts, parallel=True):
+def calculateTextMetrics(G, tokenized_texts, parallel=True, calc_connectivity=True):
     prevalence = calculatePrevalence(texts=tokenized_texts)
     diversity = calculateDiversity(G=G, reverse=False)
-    connectivity = calculateConnectivity(G=G, parallel=parallel)
 
     metrics = pd.DataFrame.from_dict(prevalence, orient="index", columns=["prevalence"])
     metrics["diversity"] = metrics.index.map(diversity)
-    metrics["connectivity"] = metrics.index.map(connectivity)
+
+    if calc_connectivity:
+        connectivity = calculateConnectivity(G=G, parallel=parallel)
+        metrics["connectivity"] = metrics.index.map(connectivity)
 
     return metrics
 

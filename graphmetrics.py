@@ -142,6 +142,13 @@ def get_mails_per_day(df_raw: pd.DataFrame, poi1: str, poi2: str, timeline):
     return poi1_to_poi2
 
 
+def get_communication_distribution(df, pers1, pers2, timeline):
+    a_to_b = get_mails_per_day(df_raw=df, pers1=pers1, pers2=pers2, timeline=timeline)
+    b_to_a = get_mails_per_day(df_raw=df, pers1=pers2, pers2=pers1, timeline=timeline)
+
+    return [sum(x) for x in zip(a_to_b, b_to_a)]
+
+
 def get_weekly_indices(timeline: pd.Series):
     indices = []
 

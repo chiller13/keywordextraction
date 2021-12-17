@@ -46,8 +46,7 @@ def clean_texts(texts, stopwords, **kwargs):
     texts = [re.sub(r"www\S+", " ", t) for t in texts]
 
     print("Remove punctuation")
-    regex = re.compile("[%s]" % re.escape(string.punctuation))
-    texts = [regex.sub(" ", t) for t in texts]
+    texts = [re.sub(r"[^\w\s]", "", t) for t in texts]
 
     print("Remove words made of single letters")
     texts = [re.sub(r"\b\w{1}\b", " ", t) for t in texts]
@@ -135,8 +134,49 @@ def create_wcn(texts, co_range=0, link_filter=2, remove_isolates=False):
     return G_filtered
 
 
-def show_ego_of_word(G, node, radius=1, min_weight=1, figsize=(20, 15)):
+def show_ego_of_word(G, node, path="textgraph.png", radius=1, min_weight=1, figsize=(20, 15)):
     """Visualizes the ego graph of **node** in **G**."""
+    ego = nx.ego_graph(G, node, radius=radius, center=True, undirected=False)
+    ego.remove_edges_from(nx.selfloop_edges(ego))
+
+    # Falls man nochmal Filtern will
+    if min_weight > 1:
+        ego.remove_edges_from([(u, v, d) for u, v, d in ego.edges(data=True) if d["weight"] < min_weight])
+        component = nx.node_connected_component(ego, node)
+        to_remove = component.symmetric_difference(set(G.nodes))
+        ego.remove_nodes_from(to_remove)
+
+    print("No. of Nodes:", ego.number_of_nodes(), "No. of Edges:", ego.number_of_edges())
+    colors = graphtools.color_nodes(G=ego, ego_node=node)
+    plt.figure(figsize=figsize)
+    pos = nx.spring_layout(ego, seed=42, weight="weight")
+    # labels = nx.draw_networkx_labels(ego, pos=pos, font_color="black")
+    # edges = nx.draw_networkx_edges(ego, pos=pos, alpha=0.5)
+
+    # Berechnung der Knotengröße
+    occurrences = [oc for d in ego.nodes() for oc in dict(ego.nodes(data=True))[d].values()]
+    max_occurrence = max(occurrences)
+    normalized_occurrence = [oc / max_occurrence for oc in occurrences]
+    node_size = [5000 * oc for oc in normalized_occurrence]
+
+    nx.draw(ego, pos=pos, node_color=colors, with_labels=True, edge_color="black", node_size=node_size)
+    plt.show()
+
+
+def get_figure_ego_of_word(
+    G,
+    node,
+    path="textgraph.png",
+    radius=1,
+    min_weight=1,
+    figsize=(20, 15),
+):
+    """Visualizes the ego graph of **node** in **G**."""
+    fig, ax = plt.subplots()
+
+    fig.set_figwidth(figsize[0])
+    fig.set_figheight(figsize[1])
+
     ego = nx.ego_graph(G, node, radius=radius, center=True, undirected=False)
     ego.remove_edges_from(nx.selfloop_edges(ego))
 
@@ -154,5 +194,26 @@ def show_ego_of_word(G, node, radius=1, min_weight=1, figsize=(20, 15)):
     labels = nx.draw_networkx_labels(ego, pos=pos, font_color="black")
     edges = nx.draw_networkx_edges(ego, pos=pos, alpha=0.5)
 
-    nx.draw(ego, pos=pos, node_color=colors, edge_color="black", node_size=[50 * oc for d in ego.nodes() for oc in dict(ego.nodes(data=True))[d].values()])
-    plt.show()
+    occurrences = [oc for d in ego.nodes() for oc in dict(ego.nodes(data=True))[d].values()]
+    max_occurrence = max(occurrences)
+    normalized_occurrence = [oc / max_occurrence for oc in occurrences]
+    node_size = [5000 * oc for oc in normalized_occurrence]
+
+    nx.draw_networkx(ego, pos=pos, node_color=colors, with_labels=True, edge_color="black", node_size=node_size, ax=ax)
+
+    return fig
+
+
+def recommend_min_weight(G, node, radius):
+    # expected ideal edge number:
+    n_edges = 70
+    ego = nx.ego_graph(G, node, radius=radius, center=True, undirected=False)
+    ego.remove_edges_from(nx.selfloop_edges(ego))
+
+    component = nx.node_connected_component(ego, node)
+    to_remove = component.symmetric_difference(set(G.nodes))
+    ego.remove_nodes_from(to_remove)
+
+    sorted_edges = sorted(ego.edges(data=True), key=lambda t: t[2].get("weight", 1), reverse=True)
+    recommendation = sorted_edges[n_edges][2]["weight"]
+    return recommendation - 1
